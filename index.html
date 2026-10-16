@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="طوفان — هواشناسی ایران: نقشه زنده باد، بارش و موج، پیش‌بینی، کیفیت هوا و هواشناسی دریایی" />
+    <title>طوفان — هواشناسی ایران</title>
+    <link rel="icon" type="image/webp" href="./toofan-icon.webp" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./toofan-icon-512.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0e17" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+    />
+      <script type="importmap">
+      {
+        "imports": {
+          "leaflet": "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet-src.esm.js"
+        }
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-CDJ03Hn7.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vendor-Ctr1a-U8.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-CugG0kSb.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand"><span class="brand-icon">🌀</span> طوفان <span class="brand-sub">هواشناسی ایران</span></div>
+        <div class="search-wrap">
+          <input id="search-input" type="search" placeholder="جست‌وجوی شهر…" autocomplete="off" />
+          <div id="search-results" class="search-results"></div>
+        </div>
+        <div id="live-status" class="live-status"></div>
+      </header>
+
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-overlay-top">
+          <div id="layer-switcher"></div>
+        </div>
+        <div class="map-overlay-bottom">
+          <div id="time-slider" class="time-slider"></div>
+          <div id="radar-scrub"></div>
+        </div>
+      </div>
+
+      <main class="cards">
+        <div id="fetch-error"></div>
+        <section id="alerts"></section>
+        <section id="current"></section>
+        <section id="hourly"></section>
+        <section id="daily"></section>
+        <section id="marine"></section>
+        <section id="aqi"></section>
+        <section id="sources"></section>
+      </main>
+
+      <footer class="footer">
+        <div>داده‌های هواشناسی: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC-BY 4.0) · رادار: <a href="https://www.rainviewer.com" target="_blank" rel="noopener">RainViewer</a></div>
+        <div class="disclaimer">طوفان یک ابزار کمکی هشدار اولیه مردمی است و جایگزین اطلاعیه‌های رسمی مدیریت بحران نیست.</div>
+      </footer>
+    </div>
+  </body>
+</html>
