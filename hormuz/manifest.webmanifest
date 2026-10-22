@@ -1,0 +1,27 @@
+{
+ "background_color": "#0b1220",
+ "description": "رصد زنده آسمان و دریای تنگه هرمز: هواپیما، جت نظامی، پهپاد و هوای ساحل گهردو",
+ "dir": "rtl",
+ "display": "standalone",
+ "icons": [
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  },
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "maskable"
+  }
+ ],
+ "lang": "fa",
+ "name": "دیده‌بان هرمز",
+ "orientation": "portrait",
+ "scope": "./",
+ "short_name": "دیده‌بان",
+ "start_url": "./",
+ "theme_color": "#0b1220"
+}
