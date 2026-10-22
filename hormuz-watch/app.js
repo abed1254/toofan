@@ -7,7 +7,7 @@
 */
 
 const CENTER = [26.55, 56.25];
-const GOHARDO = { lat: 26.51, lon: 57.10 };
+const GOHARDO = { lat: 26.8486, lon: 57.0255 };
 const REFRESH_MS = 30000;
 const SEEN_PRUNE_MS = 2 * 60 * 60 * 1000; // تماس بعد از ۲ ساعت غیبت دوباره «تازه» حساب می‌شود
 

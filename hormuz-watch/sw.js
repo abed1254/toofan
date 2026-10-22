@@ -1,5 +1,5 @@
 /* دیده‌بان هرمز — Service Worker: کش پوسته اپ (آفلاین برای خودِ اپ؛ داده‌ها همیشه تازه از شبکه) */
-const CACHE = 'hormuz-watch-v5';
+const CACHE = 'hormuz-watch-v6';
 const SHELL = [
   './',
   './index.html',
