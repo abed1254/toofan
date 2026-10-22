@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>دیده‌بان هرمز</title>
+<meta name="description" content="رصد زنده آسمان و دریای تنگه هرمز: هواپیما، جت نظامی، پهپاد و هوای ساحل گهردو">
+<meta name="theme-color" content="#0b1220">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="دیده‌بان هرمز">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="icon.svg" alt="" class="brand-icon">
+    <div>
+      <h1>دیده‌بان هرمز</h1>
+      <p class="subtitle">رصد زنده آسمان و دریای تنگه</p>
+    </div>
+  </div>
+  <div id="statusBar" class="status">در حال اتصال…</div>
+</header>
+
+<div id="alertBanner" class="alert-banner hidden"></div>
+
+<main>
+  <!-- MAP TAB -->
+  <section id="tab-map" class="tab active">
+    <div class="map-tools">
+      <label class="chip"><input type="checkbox" id="fltCivil" checked> <span class="dot dot-civil"></span> مسافری/باری <b id="cntCivil">۰</b></label>
+      <label class="chip"><input type="checkbox" id="fltMil" checked> <span class="dot dot-mil"></span> نظامی <b id="cntMil">۰</b></label>
+      <label class="chip"><input type="checkbox" id="fltDrone" checked> <span class="dot dot-drone"></span> پهپاد <b id="cntDrone">۰</b></label>
+      <label class="chip"><input type="checkbox" id="fltLanes" checked> 🚢 خطوط کشتیرانی</label>
+      <label class="chip watch"><input type="checkbox" id="watchMode"> 👁 حالت دیده‌بانی</label>
+      <button id="btnRefresh" class="chip btn">↻ به‌روزرسانی</button>
+    </div>
+    <div id="map"></div>
+    <p class="hint">نقشه هر ۳۰ ثانیه تازه می‌شود. روی هر هواپیما بزن تا مشخصاتش را ببینی. تماس‌های نظامی و پهپادِ تازه با حلقه چشمک‌زن مشخص می‌شوند.</p>
+  </section>
+
+  <!-- COAST TAB -->
+  <section id="tab-coast" class="tab">
+    <h2>🌊 ساحل من — گهردو</h2>
+    <p id="coastDate" class="coast-date"></p>
+    <div id="coastNow" class="cards">
+      <div class="card"><span class="card-label">دما</span><span class="card-value" id="cTemp">…</span></div>
+      <div class="card"><span class="card-label">وضعیت هوا</span><span class="card-value" id="cCond">…</span></div>
+      <div class="card"><span class="card-label">باد</span><span class="card-value" id="cWind">…</span></div>
+      <div class="card"><span class="card-label">تندباد</span><span class="card-value" id="cGust">…</span></div>
+      <div class="card"><span class="card-label">جهت باد</span><span class="card-value" id="cWindDir">…</span></div>
+      <div class="card"><span class="card-label">رطوبت</span><span class="card-value" id="cHum">…</span></div>
+      <div class="card"><span class="card-label">ارتفاع موج</span><span class="card-value" id="cWave">…</span></div>
+      <div class="card"><span class="card-label">دوره موج</span><span class="card-value" id="cWavePer">…</span></div>
+      <div class="card"><span class="card-label">بیشینه موج امروز</span><span class="card-value" id="cWaveMax">…</span></div>
+      <div class="card"><span class="card-label">احتمال بارش امروز</span><span class="card-value" id="cRain">…</span></div>
+    </div>
+    <h3>ساعت‌به‌ساعت امروز</h3>
+    <div id="hourly" class="hourly"></div>
+    <button id="btnCoastRefresh" class="chip btn">↻ تازه‌سازی هوا</button>
+    <p class="hint">منبع: Open-Meteo (مدل ترکیبی best_match) و مدل دریایی Open-Meteo — مختصات گهردو ۲۶٫۵۱، ۵۷٫۱۰</p>
+  </section>
+
+  <!-- SHIPS TAB -->
+  <section id="tab-ships" class="tab">
+    <h2>🚢 کشتی‌ها و خطوط دریایی</h2>
+    <div class="notice">
+      <p><b>راستش را بگوییم:</b> داده زنده و رایگانِ قابل‌اعتماد از موقعیت کشتی‌ها (AIS) برای این منطقه به‌صورت عمومی در دسترس نیست؛ برای همین موقعیت ساختگی نشان نمی‌دهیم.</p>
+      <p>به‌جای آن، خطوط اصلی رفت‌وبرگشت کشتی‌ها در تنگه (طرح جداسازی ترافیک TSS) و بندرهای مهم روی نقشه مشخص شده‌اند — در زبانه «نقشه» فیلتر «خطوط کشتیرانی» را روشن کن.</p>
+    </div>
+    <h3>خطوط روی نقشه</h3>
+    <ul class="lane-list">
+      <li><span class="lane-swatch lane-in"></span> خط ورودی (به سمت خلیج فارس) — نوار شمالی</li>
+      <li><span class="lane-swatch lane-out"></span> خط خروجی (از خلیج فارس به دریای عمان) — نوار جنوبی</li>
+      <li><span class="lane-swatch lane-sep"></span> نوار جداکننده میانی (منطقه ممنوعه تردد)</li>
+    </ul>
+    <h3>نقطه‌های مهم</h3>
+    <ul class="lane-list">
+      <li>⚓ بندرعباس — بزرگ‌ترین بندر ایران، شمال تنگه</li>
+      <li>⚓ جاسک — شرق تنگه، نزدیک گهردو</li>
+      <li>⚓ فجیره — جنوب تنگه، لنگرگاه نفتکش‌ها</li>
+      <li>⚓ خصب — شبه‌جزیره مسندم عمان</li>
+      <li>🏝 جزیره لارک و جزیره قشم — دو سوی آبراه اصلی</li>
+    </ul>
+    <p class="hint">روزی حدود یک‌پنجم نفت جهان از همین آبراه رد می‌شود؛ باریک‌ترین نقطه تنگه حدود ۳۹ کیلومتر است و هر خط کشتیرانی فقط حدود ۳ کیلومتر پهنا دارد.</p>
+  </section>
+
+  <!-- TIMELINE TAB -->
+  <section id="tab-events" class="tab">
+    <h2>📜 تایم‌لاین تماس‌های نظامی و پهپاد</h2>
+    <p class="hint">هر بار که یک تماس نظامی یا پهپادِ تازه در محدوده دیده شود، اینجا با ساعت ثبت می‌شود. این فهرست روی همین گوشی ذخیره می‌شود.</p>
+    <div id="eventList" class="event-list"></div>
+    <button id="btnClearEvents" class="chip btn danger">پاک کردن تاریخچه</button>
+
+    <h3>⚙️ تنظیمات</h3>
+    <label class="setting-label" for="fr24Key">کلید API فلایت‌رادار۲۴ (اختیاری — برای آینده)</label>
+    <input id="fr24Key" class="setting-input" type="text" dir="ltr" placeholder="FR24 API key" autocomplete="off">
+    <button id="btnSaveKey" class="chip btn">ذخیره کلید</button>
+    <p class="hint">اشتراک Pro فلایت‌رادار۲۴ دسترسی API نمی‌دهد و اپ هم نمی‌تواند وارد حساب شخصی‌ات شود؛ این کلید فقط اگر روزی API جدا گرفتی اینجا نگه داشته می‌شود. فعلاً منبع داده ADS-B عمومی (adsb.lol) است.</p>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button class="tabbtn active" data-tab="map">🗺 نقشه</button>
+  <button class="tabbtn" data-tab="coast">🌊 ساحل من</button>
+  <button class="tabbtn" data-tab="ships">🚢 کشتی‌ها</button>
+  <button class="tabbtn" data-tab="events">📜 رویدادها <span id="evtBadge" class="badge hidden">۰</span></button>
+</nav>
+
+<script src="vendor/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
