@@ -15,7 +15,8 @@ const ADSB_SOURCES = [
   { name: 'adsb.lol', url: 'https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.fi', url: 'https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.lol (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
-  { name: 'adsb.fi (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' }
+  { name: 'adsb.fi (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
+  { name: 'adsb.lol (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.adsb.lol%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' }
 ];
 
 const DRONE_TYPES = new Set(['Q9', 'R4', 'Y6', 'UAV', 'RQ4', 'MQ9', 'TB2', 'HERM', 'Y9']);
