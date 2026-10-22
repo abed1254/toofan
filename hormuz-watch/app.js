@@ -11,12 +11,16 @@ const GOHARDO = { lat: 26.51, lon: 57.10 };
 const REFRESH_MS = 30000;
 const SEEN_PRUNE_MS = 2 * 60 * 60 * 1000; // تماس بعد از ۲ ساعت غیبت دوباره «تازه» حساب می‌شود
 
+/* منابع پرواز به ترتیب تلاش؛ اولین منبعی که JSON معتبر با آرایه هواپیما بدهد برنده است.
+   adsb.lol و adsb.fi هدر CORS نمی‌فرستند، برای همین بعد از منابع مستقیم، پراکسی‌های عمومی می‌آیند. */
 const ADSB_SOURCES = [
+  { name: 'airplanes.live', url: 'https://api.airplanes.live/v2/point/26.55/56.25/130' },
   { name: 'adsb.lol', url: 'https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.fi', url: 'https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.lol (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.fi (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
-  { name: 'adsb.lol (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.adsb.lol%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' }
+  { name: 'adsb.lol (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.adsb.lol%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' },
+  { name: 'adsb.fi (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fopendata.adsb.fi%2Fapi%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' }
 ];
 
 const DRONE_TYPES = new Set(['Q9', 'R4', 'Y6', 'UAV', 'RQ4', 'MQ9', 'TB2', 'HERM', 'Y9']);
@@ -34,10 +38,26 @@ function classify(ac) {
 
 /* ---------- نقشه ---------- */
 const map = L.map('map', { zoomControl: true }).setView(CENTER, 8);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+// کاشی اصلی: CARTO تیره؛ اگر پشت‌سرهم خطا داد، خودکار می‌رویم روی OpenStreetMap استاندارد تا نقشه همیشه رندر شود
+const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap | داده پرواز: adsb.lol',
+  maxZoom: 17
+});
+const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap © CARTO | داده پرواز: adsb.lol',
   maxZoom: 17, subdomains: 'abcd'
-}).addTo(map);
+});
+let cartoErrors = 0, tileFallbackDone = false;
+cartoLayer.on('tileerror', () => {
+  if (tileFallbackDone) return;
+  if (++cartoErrors >= 4) {
+    tileFallbackDone = true;
+    map.removeLayer(cartoLayer);
+    osmLayer.addTo(map);
+  }
+});
+cartoLayer.on('tileload', () => { cartoErrors = 0; });
+cartoLayer.addTo(map);
 
 // نشان گهردو و مرکز رصد
 L.circleMarker([GOHARDO.lat, GOHARDO.lon], { radius: 6, color: '#4ade80', weight: 2, fillColor: '#4ade80', fillOpacity: .6 })
@@ -127,13 +147,16 @@ function setStatus(txt, cls) {
 let lastSource = '';
 async function fetchAircraft() {
   for (const src of ADSB_SOURCES) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12000); // هر منبع حداکثر ۱۲ ثانیه؛ پراکسی هنگ‌کرده زنجیره را قفل نکند
     try {
-      const r = await fetch(src.url, { cache: 'no-store' });
+      const r = await fetch(src.url, { cache: 'no-store', signal: ctrl.signal });
       if (!r.ok) continue;
       const j = await r.json();
-      const list = j.ac || j.aircraft || j.acList;
-      if (Array.isArray(list)) { lastSource = src.name; return list; }
+      const list = Array.isArray(j.ac) ? j.ac : (Array.isArray(j.aircraft) ? j.aircraft : null);
+      if (list) { lastSource = src.name; return list; }
     } catch (e) { /* منبع بعدی */ }
+    finally { clearTimeout(timer); }
   }
   throw new Error('همه منابع پرواز ناموفق بودند');
 }
