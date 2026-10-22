@@ -111,6 +111,77 @@ const layers = {
   drone: L.layerGroup().addTo(map)
 };
 
+/* ---------- مسیرهای پرواز (خطوط ردّی روی نقشه) ----------
+   API عمومی adsb.lol اندپوینت trace ندارد: مسیرهای /v2/trace/recent|full/{hex}
+   برای هگزهای زنده نظامی هم مستقیم و هم از مسیر ورکر بدنه خالی/خطای ۴۰۰ می‌دهند و
+   در OpenAPI رسمی آن (‎/api/openapi.json) اصلاً مسیری برای trace تعریف نشده است.
+   برای همین مسیرها به‌صورت زنده روی خود گوشی ساخته می‌شوند: از وقتی اپ باز است،
+   موقعیت هر هواگرد در هر تازه‌سازی ثبت و به خط ردّش اضافه می‌شود (breadcrumb). */
+const tracksGroup = L.layerGroup().addTo(map);
+const TRACK_COLORS = { mil: '#fb923c', drone: '#c084fc', civil: '#38bdf8' };
+const TRACK_MAX_POINTS = 300;    // سقف نقطه در هر خط — برای روان ماندن نقشه روی موبایل
+const TRACK_MIN_MOVE_M = 120;    // جابه‌جایی کمتر از این ثبت نمی‌شود (حذف نقاط تقریباً تکراری)
+const TRACK_STALE_MS = 100000;   // هواگردی که این‌قدر در فید نباشد، خطش پاک می‌شود
+const tracks = new Map();        // hex -> {hex, kind, pts:[[lat,lon],...], line, lastSeen}
+let tracksOn = true;
+let selectedHex = null;          // هواگردی که کاربر رویش زده (خطش حتی اگر مدنی باشد دیده می‌شود)
+
+function trackDistM(a, b) {
+  const dLa = (a[0] - b[0]) * 111320;
+  const dLo = (a[1] - b[1]) * 111320 * Math.cos(a[0] * Math.PI / 180);
+  return Math.hypot(dLa, dLo);
+}
+function trackShouldShow(rec) {
+  return tracksOn && (map.hasLayer(layers[rec.kind]) || rec.hex === selectedHex);
+}
+function syncTrackLine(rec) {
+  const show = trackShouldShow(rec) && rec.pts.length > 1;
+  if (show && !rec.line) {
+    rec.line = L.polyline(rec.pts, {
+      color: TRACK_COLORS[rec.kind], weight: rec.hex === selectedHex ? 3 : 2,
+      opacity: .85, dashArray: rec.kind === 'civil' ? '6 4' : null
+    }).addTo(tracksGroup);
+  } else if (show && rec.line) {
+    rec.line.setLatLngs(rec.pts);
+    rec.line.setStyle({ weight: rec.hex === selectedHex ? 3 : 2 });
+  } else if (!show && rec.line) {
+    tracksGroup.removeLayer(rec.line);
+    rec.line = null;
+  }
+}
+function refreshTrackLines() { tracks.forEach(syncTrackLine); }
+
+function pushBreadcrumb(ac, kind) {
+  let rec = tracks.get(ac.hex);
+  if (!rec) {
+    rec = { hex: ac.hex, kind, pts: [], line: null, lastSeen: Date.now() };
+    tracks.set(ac.hex, rec);
+  }
+  rec.kind = kind;
+  rec.lastSeen = Date.now();
+  const pt = [ac.lat, ac.lon];
+  const last = rec.pts[rec.pts.length - 1];
+  if (!last || trackDistM(last, pt) >= TRACK_MIN_MOVE_M) {
+    rec.pts.push(pt);
+    if (rec.pts.length > TRACK_MAX_POINTS) {
+      // نازک‌سازی: یکی‌درمیان نگه دار تا خط سبک بماند ولی شکل کلی مسیر حفظ شود
+      rec.pts = rec.pts.filter((_, i) => i % 2 === 0 || i === rec.pts.length - 1);
+    }
+  }
+  syncTrackLine(rec);
+}
+
+function pruneTracks() {
+  const now = Date.now();
+  tracks.forEach((rec, hex) => {
+    if (now - rec.lastSeen > TRACK_STALE_MS) {
+      if (rec.line) tracksGroup.removeLayer(rec.line);
+      tracks.delete(hex);
+      if (selectedHex === hex) selectedHex = null;
+    }
+  });
+}
+
 /* ---------- ذخیره محلی ---------- */
 const store = {
   get events() { try { return JSON.parse(localStorage.getItem('hw_events') || '[]'); } catch { return []; } },
@@ -277,10 +348,13 @@ async function refreshFlights(manual) {
         logEvent(ac, kind);
       }
       if (isWatched) seen[ac.hex] = now;
+      pushBreadcrumb(ac, kind);
       L.marker([ac.lat, ac.lon], { icon: planeIcon(ac, kind) })
         .addTo(layers[kind])
-        .bindPopup(popupHtml(ac, kind));
+        .bindPopup(popupHtml(ac, kind))
+        .on('click', () => { selectedHex = ac.hex; refreshTrackLines(); });
     }
+    pruneTracks();
     store.seen = seen;
 
     document.getElementById('cntCivil').textContent = faNum(counts.civil);
@@ -369,9 +443,10 @@ document.querySelectorAll('.tabbtn').forEach(btn => {
     }
   });
 });
-document.getElementById('fltCivil').addEventListener('change', e => e.target.checked ? layers.civil.addTo(map) : map.removeLayer(layers.civil));
-document.getElementById('fltMil').addEventListener('change', e => e.target.checked ? layers.mil.addTo(map) : map.removeLayer(layers.mil));
-document.getElementById('fltDrone').addEventListener('change', e => e.target.checked ? layers.drone.addTo(map) : map.removeLayer(layers.drone));
+document.getElementById('fltCivil').addEventListener('change', e => { e.target.checked ? layers.civil.addTo(map) : map.removeLayer(layers.civil); refreshTrackLines(); });
+document.getElementById('fltMil').addEventListener('change', e => { e.target.checked ? layers.mil.addTo(map) : map.removeLayer(layers.mil); refreshTrackLines(); });
+document.getElementById('fltDrone').addEventListener('change', e => { e.target.checked ? layers.drone.addTo(map) : map.removeLayer(layers.drone); refreshTrackLines(); });
+document.getElementById('fltTracks').addEventListener('change', e => { tracksOn = e.target.checked; refreshTrackLines(); });
 document.getElementById('fltLanes').addEventListener('change', e => e.target.checked ? lanesGroup.addTo(map) : map.removeLayer(lanesGroup));
 document.getElementById('btnRefresh').addEventListener('click', () => refreshFlights(true));
 document.getElementById('btnCoastRefresh').addEventListener('click', refreshCoast);
