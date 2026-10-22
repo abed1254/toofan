@@ -17,47 +17,64 @@ const ADSB_SOURCES = [
   { name: 'airplanes.live', url: 'https://api.airplanes.live/v2/point/26.55/56.25/130' },
   { name: 'adsb.lol', url: 'https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.fi', url: 'https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
-  { name: 'adsb.lol (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.fi (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
-  { name: 'adsb.lol (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.adsb.lol%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' },
-  { name: 'adsb.fi (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fopendata.adsb.fi%2Fapi%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' }
+  { name: 'adsb.lol (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
+  { name: 'adsb.fi (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fopendata.adsb.fi%2Fapi%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' },
+  { name: 'adsb.lol (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.adsb.lol%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' }
 ];
+/* آخرین منبع جایگزین: OpenSky (به مرورگرها CORS می‌دهد؛ dbFlags ندارد، طبقه‌بندی نظامی‌اش فقط با کال‌ساین است) */
+const OPENSKY_URL = 'https://opensky-network.org/api/states/all?lamin=24.0&lomin=52.0&lamax=28.5&lomax=60.0';
+const SOURCE_TIMEOUT_MS = 6000;   // هر منبع حداکثر ۶ ثانیه
+const CYCLE_DEADLINE_MS = 30000;  // کل چرخه حداکثر ۳۰ ثانیه تا اپ «هنگ‌کرده» به نظر نرسد
 
 const DRONE_TYPES = new Set(['Q9', 'R4', 'Y6', 'UAV', 'RQ4', 'MQ9', 'TB2', 'HERM', 'Y9']);
 const faNum = n => (n === null || n === undefined || isNaN(n)) ? '—' : Number(n).toLocaleString('fa-IR');
 const faInt = n => (n === null || n === undefined || isNaN(n)) ? '—' : Math.round(Number(n)).toLocaleString('fa-IR');
 
 /* ---------- طبقه‌بندی ---------- */
+// پیشوندهای کال‌ساین نظامی شناخته‌شده؛ فقط وقتی به کار می‌روند که منبع dbFlags نداشته باشد (OpenSky)
+const MIL_CALLSIGNS = ['RCH', 'SAM', 'YETI', 'DUKE', 'VULCAN', 'REACH', 'CNV', 'PAT'];
 function classify(ac) {
   const cs = (ac.flight || '').trim().toUpperCase();
   const t = (ac.t || '').toUpperCase();
   if (DRONE_TYPES.has(t) || cs.includes('FORTE') || cs.includes('UAV')) return 'drone';
   if (ac.dbFlags && (ac.dbFlags & 1) === 1) return 'mil';
+  if (!ac.dbFlags && MIL_CALLSIGNS.some(p => cs.startsWith(p))) return 'mil';
   return 'civil';
 }
 
 /* ---------- نقشه ---------- */
 const map = L.map('map', { zoomControl: true }).setView(CENTER, 8);
-// کاشی اصلی: CARTO تیره؛ اگر پشت‌سرهم خطا داد، خودکار می‌رویم روی OpenStreetMap استاندارد تا نقشه همیشه رندر شود
+// لایه پایه پیش‌فرض: OpenStreetMap استاندارد (رایگان، بدون کلید API)؛ لایه ماهواره‌ای Esri هم با دکمه «ماهواره» قابل انتخاب است
 const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap | داده پرواز: adsb.lol',
-  maxZoom: 17
+  attribution: '© OpenStreetMap contributors | داده پرواز: adsb.lol',
+  maxZoom: 19
 });
-const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: '© OpenStreetMap © CARTO | داده پرواز: adsb.lol',
-  maxZoom: 17, subdomains: 'abcd'
+const esriLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: '© Esri — World Imagery | داده پرواز: adsb.lol',
+  maxZoom: 18
 });
-let cartoErrors = 0, tileFallbackDone = false;
-cartoLayer.on('tileerror', () => {
-  if (tileFallbackDone) return;
-  if (++cartoErrors >= 4) {
-    tileFallbackDone = true;
-    map.removeLayer(cartoLayer);
-    osmLayer.addTo(map);
+osmLayer.addTo(map);
+// سوییچر لایه پایه: نقشه / ماهواره
+const BaseSwitch = L.Control.extend({
+  onAdd() {
+    const div = L.DomUtil.create('div', 'base-switch');
+    div.innerHTML = '<button type="button" class="bs-btn active" data-base="osm">نقشه</button>' +
+                    '<button type="button" class="bs-btn" data-base="sat">ماهواره</button>';
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    div.querySelectorAll('.bs-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        div.querySelectorAll('.bs-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (btn.dataset.base === 'sat') { map.removeLayer(osmLayer); esriLayer.addTo(map); }
+        else { map.removeLayer(esriLayer); osmLayer.addTo(map); }
+      });
+    });
+    return div;
   }
 });
-cartoLayer.on('tileload', () => { cartoErrors = 0; });
-cartoLayer.addTo(map);
+map.addControl(new BaseSwitch({ position: 'topright' }));
 
 // نشان گهردو و مرکز رصد
 L.circleMarker([GOHARDO.lat, GOHARDO.lon], { radius: 6, color: '#4ade80', weight: 2, fillColor: '#4ade80', fillOpacity: .6 })
@@ -145,19 +162,60 @@ function setStatus(txt, cls) {
 }
 
 let lastSource = '';
-async function fetchAircraft() {
-  for (const src of ADSB_SOURCES) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 12000); // هر منبع حداکثر ۱۲ ثانیه؛ پراکسی هنگ‌کرده زنجیره را قفل نکند
-    try {
-      const r = await fetch(src.url, { cache: 'no-store', signal: ctrl.signal });
-      if (!r.ok) continue;
-      const j = await r.json();
-      const list = Array.isArray(j.ac) ? j.ac : (Array.isArray(j.aircraft) ? j.aircraft : null);
-      if (list) { lastSource = src.name; return list; }
-    } catch (e) { /* منبع بعدی */ }
-    finally { clearTimeout(timer); }
+async function fetchJsonTimeout(url, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) { return null; }
+  finally { clearTimeout(timer); }
+}
+
+/* آداپتور OpenSky: states[] را به همان شکل شیء هواپیمای بقیه منابع تبدیل می‌کند.
+   [0]=hex، [1]=کال‌ساین، [5]=lon، [6]=lat، [7]=ارتفاع بارو (متر)، [8]=روی زمین، [9]=سرعت (m/s)، [10]=جهت، [13]=ارتفاع ژئو (متر) */
+async function tryOpenSky(timeoutMs) {
+  const j = await fetchJsonTimeout(OPENSKY_URL, timeoutMs);
+  if (!j || !('states' in j)) return null;
+  const states = Array.isArray(j.states) ? j.states : [];
+  const list = [];
+  for (const s of states) {
+    if (typeof s[6] !== 'number' || typeof s[5] !== 'number') continue;
+    list.push({
+      hex: s[0] || '',
+      flight: (s[1] || '').trim(),
+      t: '', r: '',
+      alt_baro: s[8] ? 'ground'
+        : (typeof s[7] === 'number' ? Math.round(s[7] * 3.28084)
+        : (typeof s[13] === 'number' ? Math.round(s[13] * 3.28084) : null)),
+      gs: typeof s[9] === 'number' ? s[9] * 1.94384 : null,   // m/s → نات
+      track: typeof s[10] === 'number' ? s[10] : null,
+      lat: s[6], lon: s[5]
+    });
   }
+  return list;
+}
+
+async function fetchAircraft() {
+  const total = ADSB_SOURCES.length + 1; // +۱ برای OpenSky در انتها
+  const deadline = Date.now() + CYCLE_DEADLINE_MS;
+  let idx = 0;
+  for (const src of ADSB_SOURCES) {
+    idx++;
+    const remain = deadline - Date.now();
+    if (remain <= 0) break;
+    setStatus(`در حال اتصال… (منبع ${faInt(idx)} از ${faInt(total)})`);
+    const j = await fetchJsonTimeout(src.url, Math.min(SOURCE_TIMEOUT_MS, remain));
+    const list = j ? (Array.isArray(j.ac) ? j.ac : (Array.isArray(j.aircraft) ? j.aircraft : null)) : null;
+    if (list) { lastSource = src.name; return list; }
+  }
+  // همه منابع فرمت adsb.lol شکست خوردند → آخرین تلاش: OpenSky
+  idx++;
+  setStatus(`در حال اتصال… (منبع ${faInt(idx)} از ${faInt(total)})`);
+  const remain = Math.max(1000, deadline - Date.now());
+  const os = await tryOpenSky(Math.min(SOURCE_TIMEOUT_MS, remain));
+  if (os) { lastSource = 'opensky'; return os; }
   throw new Error('همه منابع پرواز ناموفق بودند');
 }
 
