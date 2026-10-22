@@ -16,15 +16,15 @@ const SEEN_PRUNE_MS = 2 * 60 * 60 * 1000; // تماس بعد از ۲ ساعت غ
    (adsb.lol و adsb.fi خودشان هدر CORS نمی‌فرستند). */
 const WORKER_BASE = 'https://hormuz.abed012540.workers.dev/?url=';
 const ADSB_SOURCES = [
-  { name: 'ورکر اختصاصی', url: WORKER_BASE + encodeURIComponent('https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130') },
+  { name: 'ورکر اختصاصی', url: WORKER_BASE + encodeURIComponent('https://api.adsb.lol/v2/point/26.55/56.25/130') },
   { name: 'ورکر اختصاصی (adsb.fi)', url: WORKER_BASE + encodeURIComponent('https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130') },
   { name: 'airplanes.live', url: 'https://api.airplanes.live/v2/point/26.55/56.25/130' },
-  { name: 'adsb.lol', url: 'https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
+  { name: 'adsb.lol', url: 'https://api.adsb.lol/v2/point/26.55/56.25/130' },
   { name: 'adsb.fi', url: 'https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.fi (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
-  { name: 'adsb.lol (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
+  { name: 'adsb.lol (پراکسی)', url: 'https://api.codetabs.com/v1/proxy?quest=https://api.adsb.lol/v2/point/26.55/56.25/130' },
   { name: 'adsb.fi (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fopendata.adsb.fi%2Fapi%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' },
-  { name: 'adsb.lol (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.adsb.lol%2Fv2%2Flat%2F26.55%2Flon%2F56.25%2Fdist%2F130' }
+  { name: 'adsb.lol (پراکسی ۲)', url: 'https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.adsb.lol%2Fv2%2Fpoint%2F26.55%2F56.25%2F130' }
 ];
 /* آخرین منبع جایگزین: OpenSky (به مرورگرها CORS می‌دهد؛ dbFlags ندارد، طبقه‌بندی نظامی‌اش فقط با کال‌ساین است) */
 const OPENSKY_URL = 'https://opensky-network.org/api/states/all?lamin=24.0&lomin=52.0&lamax=28.5&lomax=60.0';
