@@ -1,5 +1,5 @@
 /* دیده‌بان هرمز — Service Worker: کش پوسته اپ (آفلاین برای خودِ اپ؛ داده‌ها همیشه تازه از شبکه) */
-const CACHE = 'hormuz-watch-v3';
+const CACHE = 'hormuz-watch-v4';
 const SHELL = [
   './',
   './index.html',
@@ -26,7 +26,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   // داده‌های زنده (پرواز، هوا، کاشی نقشه) همیشه از شبکه — کش نمی‌شوند
-  const liveHosts = ['adsb.lol', 'adsb.fi', 'airplanes.live', 'codetabs.com', 'allorigins.win', 'open-meteo.com', 'tile.openstreetmap.org', 'server.arcgisonline.com', 'opensky-network.org'];
+  const liveHosts = ['adsb.lol', 'adsb.fi', 'airplanes.live', 'codetabs.com', 'allorigins.win', 'open-meteo.com', 'tile.openstreetmap.org', 'server.arcgisonline.com', 'opensky-network.org', 'abed012540.workers.dev'];
   if (e.request.method !== 'GET' || liveHosts.some(h => url.hostname.includes(h))) {
     return; // پیش‌فرض مرورگر
   }

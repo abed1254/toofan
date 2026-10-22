@@ -1,7 +1,7 @@
 'use strict';
 /* دیده‌بان هرمز — Hormuz Watch
    منابع داده (رایگان و عمومی):
-   - هواپیما: adsb.lol v2 (مستقیم → adsb.fi → پراکسی عمومی codetabs، چون adsb.lol هدر CORS نمی‌فرستد)
+   - هواپیما: ورکر اختصاصی Cloudflare (منبع اصلی) → adsb.lol / adsb.fi از مسیرهای جایگزین
    - هوا و موج: Open-Meteo (CORS کامل)
    ذخیره‌سازی محلی: تایم‌لاین رویدادها، تماس‌های دیده‌شده، کلید اختیاری FR24
 */
@@ -12,8 +12,12 @@ const REFRESH_MS = 30000;
 const SEEN_PRUNE_MS = 2 * 60 * 60 * 1000; // تماس بعد از ۲ ساعت غیبت دوباره «تازه» حساب می‌شود
 
 /* منابع پرواز به ترتیب تلاش؛ اولین منبعی که JSON معتبر با آرایه هواپیما بدهد برنده است.
-   adsb.lol و adsb.fi هدر CORS نمی‌فرستند، برای همین بعد از منابع مستقیم، پراکسی‌های عمومی می‌آیند. */
+   اول: ورکر اختصاصی کاربر روی Cloudflare (CORS کامل و پایدار) → بعد منابع مستقیم و پراکسی‌های عمومی
+   (adsb.lol و adsb.fi خودشان هدر CORS نمی‌فرستند). */
+const WORKER_BASE = 'https://hormuz.abed012540.workers.dev/?url=';
 const ADSB_SOURCES = [
+  { name: 'ورکر اختصاصی', url: WORKER_BASE + encodeURIComponent('https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130') },
+  { name: 'ورکر اختصاصی (adsb.fi)', url: WORKER_BASE + encodeURIComponent('https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130') },
   { name: 'airplanes.live', url: 'https://api.airplanes.live/v2/point/26.55/56.25/130' },
   { name: 'adsb.lol', url: 'https://api.adsb.lol/v2/lat/26.55/lon/56.25/dist/130' },
   { name: 'adsb.fi', url: 'https://opendata.adsb.fi/api/v2/lat/26.55/lon/56.25/dist/130' },
