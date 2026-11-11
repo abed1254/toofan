@@ -248,8 +248,9 @@
     for(var j=0;j<parts.length;j+=6){ lines.push(parts.slice(j,j+6).join(" ")); }
     return lines.join("\n");
   }
+  var INVISIBLE = /[\u200b\u200e\u200f\u202a-\u202e\u2066-\u2069]/g; /* نویسه‌های نامرئی که iOS موقع پیست دستی توی فیلد RTL می‌ذاره */
   function binaryToBytes(str){
-    var bits = String(str).replace(/[\s\u200c]+/g, "");
+    var bits = String(str).replace(/[\s\u200c]+/g, "").replace(INVISIBLE, "");
     if(!bits) throw new Error("empty");
     if(/[^01]/.test(bits)) throw new Error("badchars");
     if(bits.length % 8 !== 0) throw new Error("badlen");
@@ -258,7 +259,7 @@
     return out;
   }
   function requireKey(){
-    var k = keyInput.value;
+    var k = keyInput.value.replace(INVISIBLE, "");
     if(!k) throw new Error("nokey");
     if(k.length < 4) throw new Error("shortkey");
     return k;
@@ -310,6 +311,12 @@
   $("binaryInput").addEventListener("input", function(){
     var bits = this.value.replace(/\D/g, "").length;
     $("binaryCount").textContent = faNum(bits) + " بیت";
+  });
+  /* پیست دستی مثل دکمهٔ چسباندن: جایگزین کل فیلد می‌شه، نه اضافه به قبلی */
+  $("binaryInput").addEventListener("paste", function(e){
+    e.preventDefault();
+    var t = (e.clipboardData || window.clipboardData).getData("text");
+    if(t){ this.value = t; this.dispatchEvent(new Event("input")); }
   });
   $("decodeBtn").addEventListener("click", function(){
     var btn = this, msg = $("decodeMsg"); hideMsg(msg);
