@@ -26,7 +26,10 @@ html.ytf-hide-sidebar #primary {
 /* --- شورتس --- */
 html.ytf-hide-shorts ytd-rich-shelf-renderer,
 html.ytf-hide-shorts ytd-reel-shelf-renderer,
-html.ytf-hide-shorts ytd-guide-entry-renderer:has(a[href="/shorts"]) {
+html.ytf-hide-shorts ytd-guide-entry-renderer:has(a[href="/shorts"]),
+html.ytf-hide-shorts ytd-mini-guide-entry-renderer:has(a[href="/shorts"]),
+html.ytf-hide-shorts ytd-guide-entry-renderer a#endpoint[href="/shorts"],
+html.ytf-hide-shorts ytd-mini-guide-entry-renderer a#endpoint[href="/shorts"] {
   display: none !important;
 }
 
