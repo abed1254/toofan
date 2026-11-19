@@ -1,0 +1,47 @@
+/* YouTube Focus — مخفی‌کردن تبلیغات و حواس‌پرتی (با کلاس روی <html>) */
+
+/* --- تبلیغات --- */
+html.ytf-hide-ads ytd-ad-slot-renderer,
+html.ytf-hide-ads ytd-display-ad-renderer,
+html.ytf-hide-ads ytd-promoted-sparkles-web-renderer,
+html.ytf-hide-ads ytd-in-feed-ad-layout,
+html.ytf-hide-ads ytd-compact-promoted-video-renderer,
+html.ytf-hide-ads ytd-promoted-video-renderer,
+html.ytf-hide-ads #masthead-ad,
+html.ytf-hide-ads .ytp-ad-player-overlay,
+html.ytf-hide-ads .ytp-ad-text,
+html.ytf-hide-ads .ytp-ad-module {
+  display: none !important;
+}
+
+/* --- پیشنهادهای کناری صفحه ویدیو --- */
+html.ytf-hide-sidebar #secondary {
+  display: none !important;
+}
+html.ytf-hide-sidebar #primary {
+  max-width: 1280px !important;
+  margin: 0 auto !important;
+}
+
+/* --- شورتس --- */
+html.ytf-hide-shorts ytd-rich-shelf-renderer,
+html.ytf-hide-shorts ytd-reel-shelf-renderer,
+html.ytf-hide-shorts ytd-guide-entry-renderer:has(a[href="/shorts"]) {
+  display: none !important;
+}
+
+/* --- کامنت‌ها --- */
+html.ytf-hide-comments #comments {
+  display: none !important;
+}
+
+/* --- پیشنهادهای پایان ویدیو --- */
+html.ytf-hide-endscreen .ytp-endscreen-content,
+html.ytf-hide-endscreen .ytp-ce-element {
+  display: none !important;
+}
+
+/* --- فید صفحه اصلی --- */
+html.ytf-hide-homefeed ytd-browse[page-subtype="home"] #contents {
+  display: none !important;
+}
